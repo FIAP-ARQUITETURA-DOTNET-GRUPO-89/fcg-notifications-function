@@ -1,0 +1,203 @@
+root = true
+
+###############################################
+# CONFIGURAÇÕES GERAIS
+###############################################
+
+[*]
+indent_style = space
+end_of_line = lf
+charset = utf-8-bom
+insert_final_newline = true
+
+###############################################
+# XML / JSON
+###############################################
+
+[*.xml]
+indent_size = 2
+
+[*.{csproj,fsproj,vbproj,proj,slnx}]
+indent_size = 2
+
+[*.{props,targets,config,nuspec}]
+indent_size = 2
+
+[*.json]
+indent_size = 2
+
+###############################################
+# C#
+###############################################
+
+[*.cs]
+indent_size = 4
+tab_width = 4
+
+###############################################
+# ORGANIZAÇÃO DE USINGS
+###############################################
+
+[*.{cs,vb}]
+dotnet_separate_import_directive_groups = false
+dotnet_sort_system_directives_first = true
+
+###############################################
+# ESTILO GERAL (.NET)
+###############################################
+
+# Evitar uso desnecessário de "this."
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+
+# Preferir tipos nativos (int ao invés de Int32)
+dotnet_style_predefined_type_for_locals_parameters_members = true:warning
+dotnet_style_predefined_type_for_member_access = true:warning
+
+# Exigir modificadores de acesso explícitos
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
+
+###############################################
+# BOAS PRÁTICAS MODERNAS
+###############################################
+
+# Inicializadores
+dotnet_style_object_initializer = true:warning
+dotnet_style_collection_initializer = true:warning
+
+# Null safety
+dotnet_style_null_propagation = true:warning
+dotnet_style_coalesce_expression = true:warning
+
+# Código mais limpo
+dotnet_style_prefer_auto_properties = true:warning
+dotnet_style_prefer_collection_expression = when_types_loosely_match:warning
+
+###############################################
+# VAR (C# MODERNO)
+###############################################
+
+# Usar var quando fizer sentido
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = false:suggestion
+
+###############################################
+# EXPRESSÕES E SINTAXE MODERNA
+###############################################
+
+# Expression-bodied members
+csharp_style_expression_bodied_properties = true:suggestion
+csharp_style_expression_bodied_methods = true:suggestion
+
+# Pattern matching
+csharp_style_pattern_matching_over_is_with_cast_check = true:warning
+csharp_style_pattern_matching_over_as_with_null_check = true:warning
+csharp_style_prefer_switch_expression = true:warning
+
+# Namespace moderno
+csharp_style_namespace_declarations = file_scoped:warning
+
+###############################################
+# SEGURANÇA E LEGIBILIDADE
+###############################################
+
+# Sempre usar chaves (evita bugs)
+csharp_prefer_braces = true:warning
+
+###############################################
+# PERFORMANCE E BOAS PRÁTICAS
+###############################################
+
+# Campos readonly quando possível
+dotnet_style_readonly_field = true:warning
+
+###############################################
+# ANALISADORES (ROSYLN)
+###############################################
+
+# Usings não utilizados (quebra build)
+dotnet_diagnostic.IDE0005.severity = error
+
+# Variáveis não utilizadas (quebra build)
+dotnet_diagnostic.CS0168.severity = error
+
+# Código morto
+dotnet_diagnostic.IDE0051.severity = warning
+
+# Campos podem ser readonly
+dotnet_diagnostic.IDE0044.severity = warning
+
+# Métodos podem ser static
+dotnet_diagnostic.CA1822.severity = warning
+
+# Preferir var quando fizer sentido
+dotnet_diagnostic.IDE0007.severity = suggestion
+
+# NÃO forçar tipo explícito
+dotnet_diagnostic.IDE0008.severity = none
+
+# Força a utilização File-scoped namespaces.
+dotnet_diagnostic.IDE0161.severity = error
+
+# Campo não anulável deve ser inicializado (evita estado inválido)
+dotnet_diagnostic.CS8618.severity = error
+
+# Possível acesso a objeto nulo (evita NullReferenceException em runtime)
+dotnet_diagnostic.CS8602.severity = error
+
+# Possível retorno de valor nulo
+dotnet_diagnostic.CS8603.severity = error
+
+# Possível passagem de null como argumento
+dotnet_diagnostic.CS8604.severity = error
+
+###############################################
+# FORMATAÇÃO
+###############################################
+
+# Quebras de linha
+csharp_new_line_before_catch = true
+csharp_new_line_before_else = true
+csharp_new_line_before_finally = true
+csharp_new_line_before_open_brace = all
+
+# Espaçamento
+csharp_space_after_comma = true
+csharp_space_around_binary_operators = before_and_after
+
+###############################################
+# NAMING CONVENTIONS
+###############################################
+
+[*.{cs,vb}]
+
+# Interfaces devem começar com I
+dotnet_naming_rule.interfaces_should_start_with_i.severity = warning
+dotnet_naming_rule.interfaces_should_start_with_i.symbols = interfaces
+dotnet_naming_rule.interfaces_should_start_with_i.style = interface_prefix
+
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+
+dotnet_naming_style.interface_prefix.required_prefix = I
+dotnet_naming_style.interface_prefix.capitalization = pascal_case
+
+# Classes, métodos e propriedades em PascalCase
+dotnet_naming_rule.members_should_be_pascalcase.severity = warning
+dotnet_naming_rule.members_should_be_pascalcase.symbols = members
+dotnet_naming_rule.members_should_be_pascalcase.style = pascalcase
+
+dotnet_naming_symbols.members.applicable_kinds = class, method, property
+
+dotnet_naming_style.pascalcase.capitalization = pascal_case
+
+# Variáveis locais em camelCase
+dotnet_naming_rule.locals_should_be_camelcase.severity = warning
+dotnet_naming_rule.locals_should_be_camelcase.symbols = locals
+dotnet_naming_rule.locals_should_be_camelcase.style = camelcase
+
+dotnet_naming_symbols.locals.applicable_kinds = local
+
+dotnet_naming_style.camelcase.capitalization = camel_case
