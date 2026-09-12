@@ -1,0 +1,12 @@
+{
+  "eventSource": "aws:rmq",
+  "eventSourceArn": "arn:aws:mq:us-east-1:000000000000:broker:fcg-notifications-rabbitmq:local-test",
+  "rmqMessagesByQueue": {
+    "notifications-user-created-events::/": [
+      {
+        "redelivered": false,
+        "data": "eyJVc2VySWQiOiAiM2ZhODVmNjQtNTcxNy00NTYyLWIzZmMtMmM5NjNmNjZhZmE2IiwgIk5hbWUiOiAiTWFyaWEgVGVzdGUiLCAiRW1haWwiOiAibWFyaWEudGVzdGVAZmNnZ2FtZXMuY29tIn0="
+      }
+    ]
+  }
+}

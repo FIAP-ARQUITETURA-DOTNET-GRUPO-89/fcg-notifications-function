@@ -1,0 +1,19 @@
+<Solution>
+  <Folder Name="/1 - Presentation/">
+    <Project Path="src/FcgNotifications.Function/FcgNotifications.Function.csproj" />
+  </Folder>
+  <Folder Name="/2 - Application/">
+    <Project Path="src/FcgNotifications.Application/FcgNotifications.Application.csproj" />
+  </Folder>
+  <Folder Name="/3 - Domain/">
+    <Project Path="src/FcgNotifications.Domain/FcgNotifications.Domain.csproj" />
+  </Folder>
+  <Folder Name="/4 - Infra/">
+    <Project Path="src/FcgNotifications.Infrastructure/FcgNotifications.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/5 - CrossCutrting/">
+    <Project Path="src/FcgNotifications.IoC/FcgNotifications.IoC.csproj" />
+    <Project Path="src/FcgNotifications.ServiceDefaults/FcgNotifications.ServiceDefaults.csproj" />
+    <Project Path="src/FcgNotifications.SharedKernel/FcgNotifications.SharedKernel.csproj" />
+  </Folder>
+</Solution>

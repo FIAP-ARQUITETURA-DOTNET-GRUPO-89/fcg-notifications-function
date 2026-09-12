@@ -1,0 +1,21 @@
+# Copie este arquivo para terraform.tfvars (que já deve estar no .gitignore) e preencha
+# os valores sensíveis. Nunca commite terraform.tfvars com senha/connection string reais.
+
+aws_region = "us-east-1"
+
+# No AWS Academy Learner Lab, a role fixa costuma se chamar "LabRole".
+existing_iam_role_name = "LabRole"
+
+rabbitmq_admin_username = "fcgadmin"
+rabbitmq_admin_password = "TROQUE_ESSA_SENHA_1234"
+
+postgres_master_username = "fcgadmin"
+postgres_master_password = "TROQUE_ESSA_OUTRA_SENHA_5678"
+
+# Opcional: seu IP público (formato "1.2.3.4/32") se quiser abrir o console do RabbitMQ
+# ou testar publish/consume direto do seu computador.
+# additional_ingress_cidr_blocks = ["SEU_IP/32"]
+
+# Opcional: restringe quem acessa a porta 5432 do RDS (senão fica 0.0.0.0/0, já que o
+# Lambda é chamado fora da VPC e usa IPs públicos dinâmicos - ver variables.tf).
+# postgres_additional_ingress_cidr_blocks = ["SEU_IP/32"]

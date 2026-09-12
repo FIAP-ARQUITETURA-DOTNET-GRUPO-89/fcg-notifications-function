@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Services\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="IDomainAssembly.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FcgNotifications.SharedKernel\FcgNotifications.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

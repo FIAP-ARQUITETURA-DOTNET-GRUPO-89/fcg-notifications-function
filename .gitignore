@@ -71,3 +71,6 @@ output/
 # Test Results
 TestResults/
 **/TestResults/
+
+# AWS Lambda packaging
+build/

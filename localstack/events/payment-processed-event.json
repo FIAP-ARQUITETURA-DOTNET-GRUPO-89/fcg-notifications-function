@@ -1,0 +1,12 @@
+{
+  "eventSource": "aws:rmq",
+  "eventSourceArn": "arn:aws:mq:us-east-1:000000000000:broker:fcg-notifications-rabbitmq:local-test",
+  "rmqMessagesByQueue": {
+    "notifications-payment-processed-events::/": [
+      {
+        "redelivered": false,
+        "data": "PREENCHA_COM_O_SEU_PAYLOAD_EM_BASE64"
+      }
+    ]
+  }
+}

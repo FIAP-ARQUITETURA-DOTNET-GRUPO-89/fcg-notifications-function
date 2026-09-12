@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Divino.OperationResult" />
+    <PackageReference Include="FgcGames.EventContracts" />
+    <PackageReference Include="MassTransit" />
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="Riok.Mapperly" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FcgNotifications.Domain\FcgNotifications.Domain.csproj" />
+    <ProjectReference Include="..\FcgNotifications.SharedKernel\FcgNotifications.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

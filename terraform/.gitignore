@@ -1,0 +1,14 @@
+# Terraform local state e cache - nunca versionar (contém segredos em texto puro).
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+
+# Valores reais (senha do broker, connection string) - use terraform.tfvars.example como base.
+terraform.tfvars
+*.auto.tfvars
+
+# Pacote de deploy do Lambda gerado localmente.
+build/

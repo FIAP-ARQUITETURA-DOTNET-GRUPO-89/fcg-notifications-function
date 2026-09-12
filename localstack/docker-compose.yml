@@ -1,0 +1,171 @@
+services:
+
+  # Roda "dotnet ef database update" dentro de um container com o SDK, então você não
+  # precisa ter o dotnet-ef instalado na sua máquina. Aplica as migrations no Postgres
+  # que já vem do docker-compose da raiz do fcg-platform (serviço "postgres", rede
+  # "fcg-network") e sai (é um "one-shot"). Por isso não tem "postgres" aqui - suba a
+  # raiz do fcg-platform ANTES deste compose (ver README.md).
+  migrate:
+    image: mcr.microsoft.com/dotnet/sdk:10.0
+    container_name: fcg-notifications-function-migrate
+    working_dir: /src/src/FcgNotifications.Infrastructure
+    environment:
+      - ConnectionStrings__Default=Host=postgres;Port=5432;Database=fcgnotifications-db;Username=postgres;Password=postgres
+    volumes:
+      - "..:/src"
+      - "dotnet-tools:/root/.dotnet/tools"
+      - "nuget-cache:/root/.nuget/packages"
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        echo "aguardando postgres (rede fcg-network)..."
+        until (echo > /dev/tcp/postgres/5432) 2>/dev/null; do
+          sleep 2
+        done
+        find /src -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
+        export PATH="$$PATH:/root/.dotnet/tools"
+        dotnet tool install --global dotnet-ef || dotnet tool update --global dotnet-ef
+        dotnet restore
+        dotnet ef database update
+    networks:
+      - fcg-network
+
+  # Empacota a Lambda (dotnet lambda package) dentro de um container, sem precisar do
+  # Amazon.Lambda.Tools instalado na sua máquina. Gera ./build/function.zip.
+  package:
+    image: mcr.microsoft.com/dotnet/sdk:10.0
+    container_name: fcg-notifications-function-package
+    working_dir: /src/src/FcgNotifications.Function
+    volumes:
+      - "..:/src"
+      - "dotnet-tools:/root/.dotnet/tools"
+      - "nuget-cache:/root/.nuget/packages"
+    # Espera o "migrate" terminar antes de começar - os dois limpam bin/obj na mesma
+    # pasta compartilhada, então não podem rodar ao mesmo tempo (condição de corrida).
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        find /src -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
+        which zip || (apt-get update && apt-get install -y --no-install-recommends zip)
+        export PATH="$$PATH:/root/.dotnet/tools"
+        dotnet tool install --global Amazon.Lambda.Tools || dotnet tool update --global Amazon.Lambda.Tools
+        dotnet lambda package -c Release -o /src/localstack/build/function.zip
+    networks:
+      - fcg-network
+
+  localstack:
+    container_name: fcg-notifications-function-localstack
+    image: localstack/localstack
+    ports:
+      - "127.0.0.1:4566:4566"
+      - "127.0.0.1:4510-4559:4510-4559"
+    environment:
+      # Obrigatório desde 2026, mesmo no tier gratuito "Hobby". Ver README.md desta pasta.
+      - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN:?defina LOCALSTACK_AUTH_TOKEN no .env}
+      - DEBUG=0
+      # PERSISTENCE=1 salva as functions/config em ./volume, então não precisa recriar
+      # a function com "awslocal lambda create-function" toda vez que reiniciar.
+      - PERSISTENCE=1
+      # Faz os containers da Lambda que o LocalStack sobe entrarem na mesma rede
+      # "fcg-network" do resto do fcg-platform, pra conseguirem resolver "postgres"
+      # (e, se precisar, "rabbitmq") pelo nome do serviço.
+      - LAMBDA_DOCKER_NETWORK=fcg-network
+    volumes:
+      - "./volume:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - fcg-network
+
+  # Cria (ou atualiza) a function no LocalStack sozinho, assim que o "package" termina
+  # e o LocalStack fica pronto - substitui o "awslocal lambda create-function" manual.
+  deploy:
+    image: python:3.12-slim
+    container_name: fcg-notifications-function-deploy
+    working_dir: /app
+    volumes:
+      - "..:/src"
+      - "./env.json:/deploy/env.json:ro"
+      - "./deploy:/app"
+      - "pip-cache:/root/.cache/pip"
+    environment:
+      - LAMBDA_ENDPOINT_URL=http://localstack:4566
+      - LAMBDA_FUNCTION_NAME=fcg-notifications-function
+      - LAMBDA_HANDLER=FcgNotifications.Function::FcgNotifications.Function.Function::FunctionHandler
+      - LAMBDA_RUNTIME=dotnet10
+      - LAMBDA_ROLE_ARN=arn:aws:iam::000000000000:role/lambda-role
+      - ZIP_PATH=/src/localstack/build/function.zip
+      - ENV_JSON_PATH=/deploy/env.json
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+    depends_on:
+      package:
+        condition: service_completed_successfully
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        pip install --quiet --disable-pip-version-check -r requirements.txt
+        python deploy.py
+    networks:
+      - fcg-network
+
+  # "Bridge" que simula o gatilho automático que o LocalStack não sabe emular (ele não
+  # tem suporte a RabbitMQ, só a ActiveMQ - https://github.com/localstack/localstack/issues/9645).
+  # Fica ouvindo direto no RabbitMQ de verdade (o "rabbitmq" que já roda na raiz do
+  # fcg-platform) e, a cada mensagem nas filas que a function trata, monta o mesmo
+  # formato de evento que o Amazon MQ entregaria de verdade e invoca a Lambda no
+  # LocalStack sozinho - "publicou na fila -> a function rodou" sem comando manual.
+  # Isso é só uma ferramenta de teste/demonstração local; o gatilho real (obrigatório
+  # pelo enunciado) é o aws_lambda_event_source_mapping em ../terraform/lambda.tf.
+  bridge:
+    image: python:3.12-slim
+    container_name: fcg-notifications-function-bridge
+    working_dir: /app
+    volumes:
+      - "./bridge:/app"
+      - "pip-cache:/root/.cache/pip"
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/%2F
+      - QUEUE_NAMES=notifications-user-created-events,notifications-payment-processed-events
+      # Liga cada fila ao exchange "fanout" que o MassTransit cria ao publicar (nome
+      # padrão dele: "<Namespace>:<TipoDoEvento>"). O bridge recria esse binding
+      # sozinho a cada start - sem isso a mensagem publicada não chega em lugar nenhum.
+      - QUEUE_EXCHANGE_MAP={"notifications-user-created-events":"FgcGames.EventContracts.Events:UserCreatedEvent","notifications-payment-processed-events":"FgcGames.EventContracts.Events:PaymentProcessedEvent"}
+      - LAMBDA_ENDPOINT_URL=http://localstack:4566
+      - LAMBDA_FUNCTION_NAME=fcg-notifications-function
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+    depends_on:
+      deploy:
+        condition: service_completed_successfully
+    command:
+      - bash
+      - -c
+      - |
+        set -e
+        pip install --quiet --disable-pip-version-check -r requirements.txt
+        python bridge.py
+    restart: unless-stopped
+    networks:
+      - fcg-network
+
+networks:
+  # Rede criada pelo docker-compose(-development).yml da RAIZ do fcg-platform - suba
+  # aquele compose primeiro. Se der erro "network fcg-network not found", é isso.
+  fcg-network:
+    external: true
+
+volumes:
+  dotnet-tools:
+  nuget-cache:
+  pip-cache:

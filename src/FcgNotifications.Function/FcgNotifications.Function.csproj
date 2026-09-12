@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <AWSProjectType>Lambda</AWSProjectType>
+    <!-- This property makes the build directory similar to a publish directory and helps the AWS .NET Lambda Mock Test Tool find project dependencies. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <!-- Generate ready to run images during publishing to improve cold start time. -->
+    <PublishReadyToRun>true</PublishReadyToRun>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Versões vêm do Directory.Packages.props (Central Package Management) - não definir Version aqui. -->
+    <PackageReference Include="Amazon.Lambda.Core" />
+    <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" />
+    <!-- Deserializa o evento entregue pelo Amazon MQ (RabbitMQ) event source mapping do Lambda. -->
+    <PackageReference Include="Amazon.Lambda.MQEvents" />
+    <!-- ConfigurationBuilder + AddJsonFile + AddEnvironmentVariables usados no BuildServiceProvider (cold start). -->
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FcgNotifications.Application\FcgNotifications.Application.csproj" />
+    <!-- NotificationType e demais tipos de domínio usados diretamente no handler. -->
+    <ProjectReference Include="..\FcgNotifications.Domain\FcgNotifications.Domain.csproj" />
+    <!-- Necessário para ConfigureWorkerDependencies (registro do MediatR, repositórios, etc.) -->
+    <ProjectReference Include="..\FcgNotifications.IoC\FcgNotifications.IoC.csproj" />
+    <!-- Necessário para o FcgNotificationsDbContext e para o DbContext ser resolvido pelo IoC -->
+    <ProjectReference Include="..\FcgNotifications.Infrastructure\FcgNotifications.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
