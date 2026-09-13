@@ -13,7 +13,7 @@ resource "aws_security_group" "postgres" {
   vpc_id      = data.aws_vpc.default.id
 
   ingress {
-    description = "Postgres a partir da própria VPC (ex.: se algum dia colocar algo na VPC)"
+    description = "Postgres a partir da propria VPC (ex.: se algum dia colocar algo na VPC)"
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
@@ -26,7 +26,7 @@ resource "aws_security_group" "postgres" {
   dynamic "ingress" {
     for_each = var.postgres_publicly_accessible ? [1] : []
     content {
-      description = "Postgres (RDS público) - Lambda fora da VPC + acesso p/ rodar migrations"
+      description = "Postgres (RDS publico) - Lambda fora da VPC + acesso p/ rodar migrations"
       from_port   = 5432
       to_port     = 5432
       protocol    = "tcp"

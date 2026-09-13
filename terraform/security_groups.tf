@@ -5,7 +5,7 @@ resource "aws_security_group" "rabbitmq_broker" {
 
   # AMQPS (RabbitMQ criptografado - o Amazon MQ para RabbitMQ não expõe AMQP em texto puro).
   ingress {
-    description = "AMQPS a partir de qualquer recurso dentro da própria VPC (Lambda, publishers, etc.)"
+    description = "AMQPS a partir de qualquer recurso dentro da propria VPC (Lambda, publishers, etc.)"
     from_port   = 5671
     to_port     = 5671
     protocol    = "tcp"
