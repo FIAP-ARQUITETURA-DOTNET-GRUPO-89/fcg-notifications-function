@@ -120,31 +120,26 @@ services:
 
   # "Bridge" que simula o gatilho automático que o LocalStack não sabe emular (ele não
   # tem suporte a RabbitMQ, só a ActiveMQ - https://github.com/localstack/localstack/issues/9645).
-  # Fica ouvindo direto no RabbitMQ de verdade (o "rabbitmq" que já roda na raiz do
-  # fcg-platform) e, a cada mensagem nas filas que a function trata, monta o mesmo
-  # formato de evento que o Amazon MQ entregaria de verdade e invoca a Lambda no
+  # É um consumer MassTransit de verdade (FcgNotifications.Bridge, ./bridge) - por isso
+  # cria a fila E o binding com o exchange certo sozinho, do mesmo jeito que o Worker
+  # antigo fazia, sem precisar de nenhum mapeamento manual. A cada mensagem, monta o
+  # mesmo formato de evento que o Amazon MQ entregaria de verdade e invoca a Lambda no
   # LocalStack sozinho - "publicou na fila -> a function rodou" sem comando manual.
   # Isso é só uma ferramenta de teste/demonstração local; o gatilho real (obrigatório
   # pelo enunciado) é o aws_lambda_event_source_mapping em ../terraform/lambda.tf.
   bridge:
-    image: python:3.12-slim
+    image: mcr.microsoft.com/dotnet/sdk:10.0
     container_name: fcg-notifications-function-bridge
-    working_dir: /app
+    working_dir: /src/localstack/bridge
     volumes:
-      - "./bridge:/app"
-      - "pip-cache:/root/.cache/pip"
+      - "..:/src"
+      - "dotnet-tools:/root/.dotnet/tools"
+      - "nuget-cache:/root/.nuget/packages"
     environment:
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/%2F
-      - QUEUE_NAMES=notifications-user-created-events,notifications-payment-processed-events
-      # Liga cada fila ao exchange "fanout" que o MassTransit cria ao publicar (nome
-      # padrão dele: "<Namespace>:<TipoDoEvento>"). O bridge recria esse binding
-      # sozinho a cada start - sem isso a mensagem publicada não chega em lugar nenhum.
-      - QUEUE_EXCHANGE_MAP={"notifications-user-created-events":"FgcGames.EventContracts.Events:UserCreatedEvent","notifications-payment-processed-events":"FgcGames.EventContracts.Events:PaymentProcessedEvent"}
-      - LAMBDA_ENDPOINT_URL=http://localstack:4566
-      - LAMBDA_FUNCTION_NAME=fcg-notifications-function
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-      - AWS_DEFAULT_REGION=us-east-1
+      - ConnectionStrings__Rabbitmq=amqp://guest:guest@rabbitmq:5672
+      - Bridge__LambdaEndpointUrl=http://localstack:4566
+      - Bridge__LambdaFunctionName=fcg-notifications-function
+      - Bridge__AwsRegion=us-east-1
     depends_on:
       deploy:
         condition: service_completed_successfully
@@ -153,8 +148,8 @@ services:
       - -c
       - |
         set -e
-        pip install --quiet --disable-pip-version-check -r requirements.txt
-        python bridge.py
+        find /src -type d \( -name bin -o -name obj \) -prune -exec rm -rf {} +
+        dotnet run -c Release
     restart: unless-stopped
     networks:
       - fcg-network

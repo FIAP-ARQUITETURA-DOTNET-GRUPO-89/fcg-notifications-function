@@ -3,11 +3,15 @@
 O LocalStack não simula o gatilho automático do Amazon MQ (RabbitMQ) — esse recurso
 [não é implementado](https://github.com/localstack/localstack/issues/9645) (só têm
 ActiveMQ, não RabbitMQ, nem no plano pago). Pra contornar isso só localmente, esse
-compose sobe um **bridge** (`./bridge`): um script que fica ouvindo o RabbitMQ de
-verdade e, a cada mensagem, invoca a Lambda no LocalStack sozinho — então "publica na
-fila → a function roda" continua funcionando local, sem comando manual, mesmo o
-LocalStack não suportando isso nativamente. O bridge não é parte do código da function
-nem da IaC (isso é só o `../terraform`, que é o que a AWS de verdade usa via
+compose sobe um **bridge** (`./bridge`, `FcgNotifications.Bridge`): um consumer
+MassTransit de verdade (C#/.NET, mesma stack do resto do projeto) que ouve o RabbitMQ
+de verdade e, a cada mensagem, monta o mesmo formato de evento que o Amazon MQ
+entregaria de verdade e invoca a Lambda no LocalStack sozinho — então "publica na fila
+→ a function roda" continua funcionando local, sem comando manual, mesmo o LocalStack
+não suportando isso nativamente. Por ser um consumer MassTransit de verdade, ele cria a
+fila **e** o binding com o exchange certo sozinho (do mesmo jeito que o Worker antigo
+fazia), sem precisar de nenhum mapeamento manual. O bridge não é parte do código da
+function nem da IaC (isso é só o `../terraform`, que é o que a AWS de verdade usa via
 `aws_lambda_event_source_mapping`) — é só uma ferramenta de teste/demonstração local.
 
 ## Pré-requisitos
@@ -46,7 +50,7 @@ nem da IaC (isso é só o `../terraform`, que é o que a AWS de verdade usa via
 ## 1. Subir tudo: migrations + empacotar + LocalStack + criar a function + bridge
 
 ```powershell
-cd microservices\fcg-notifications-function\localstack
+cd "C:\source\Projetos Pessoais\fcg-notifications-function\localstack"
 Copy-Item .env.example .env
 notepad .env   # cole o LOCALSTACK_AUTH_TOKEN
 docker compose up
@@ -152,14 +156,17 @@ awslocal logs tail /aws/lambda/fcg-notifications-function --since 10m
 ```
 
 > O `bridge` já cria a fila **e** o binding dela com o exchange que o MassTransit usa
-> pra publicar (`QUEUE_EXCHANGE_MAP` no `docker-compose.yml`) toda vez que sobe - não
-> precisa rodar a `users-api`/`payments-api` primeiro nem mexer em nada manual no
-> painel do RabbitMQ. Isso importa porque o `rabbitmq` do compose da raiz não tem
-> volume: toda vez que o container dele é recriado, esse binding se perde, e sem ele
-> a mensagem publicada não chega em lugar nenhum (fica presa no exchange, sem erro
-> nenhum aparecer). Se por algum motivo mudar o nome/namespace do evento no pacote
-> `FgcGames.EventContracts`, atualiza o `QUEUE_EXCHANGE_MAP` (o nome certo aparece na
-> aba **Exchanges** do painel do RabbitMQ, formato `<Namespace>:<TipoDoEvento>`).
+> pra publicar toda vez que sobe - por ser ele mesmo um consumer MassTransit
+> (`cfg.ReceiveEndpoint(...)` em `Program.cs`), isso é automático, do mesmo jeito que
+> qualquer outro consumer MassTransit do projeto faz. Não precisa rodar a
+> `users-api`/`payments-api` primeiro nem mexer em nada manual no painel do RabbitMQ.
+> Isso importa porque o `rabbitmq` do compose da raiz não tem volume: toda vez que o
+> container dele é recriado, esse binding se perde, e sem ele a mensagem publicada não
+> chega em lugar nenhum (fica presa no exchange, sem erro nenhum aparecer) - mas o
+> `bridge` recria o binding sozinho a cada start. Se por algum motivo mudar o
+> nome/namespace do evento no pacote `FgcGames.EventContracts`, não precisa mexer no
+> bridge - só ajustar o tipo do evento no `IConsumer<T>` correspondente em
+> `./bridge/Consumers`.
 
 ## 4. Invocar manualmente (sem depender do bridge)
 
