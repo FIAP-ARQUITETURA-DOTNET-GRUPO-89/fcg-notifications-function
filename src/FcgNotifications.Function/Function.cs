@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using Amazon.Lambda.Core;
 using Amazon.Lambda.MQEvents;
@@ -10,19 +10,15 @@ using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-// Assembly attribute to enable the Lambda function's JSON input to be converted into a .NET class.
+
 [assembly: LambdaSerializer(typeof(Amazon.Lambda.Serialization.SystemTextJson.DefaultLambdaJsonSerializer))]
 
 namespace FcgNotifications.Function;
 
 public class Function
 {
-    // Construído uma única vez por ambiente de execução do Lambda (cold start) e reaproveitado
-    // entre invocações que caem no mesmo container, evitando reconstruir o DI a cada mensagem.
     private static readonly IServiceProvider ServiceProvider = BuildServiceProvider();
 
-    // PropertyNameCaseInsensitive porque o corpo real da mensagem (dentro do envelope do
-    // MassTransit, ver UnwrapMassTransitEnvelope abaixo) vem em camelCase.
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private static IServiceProvider BuildServiceProvider()
@@ -52,20 +48,12 @@ public class Function
 
         foreach (var (queueKey, messages) in rabbitMqEvent.RmqMessagesByQueue)
         {
-            // A chave vem no formato "nomeDaFila::/vhost".
             var queueName = queueKey.Split("::")[0];
 
             foreach (var message in messages)
             {
-                // message.Data vem como string em base64; precisa decodificar antes de virar texto.
                 var rawBody = Encoding.UTF8.GetString(Convert.FromBase64String(message.Data));
 
-                // O Users-API/Payments-API publicam pelo MassTransit (publishEndpoint.Publish),
-                // que não manda o objeto puro pra fila - ele embrulha num envelope próprio
-                // ({ "messageId": ..., "messageType": [...], "message": { ... o evento de
-                // verdade, em camelCase ... } }). O Amazon MQ entrega essa mensagem crua pro
-                // Lambda (sem o MassTransit por perto pra desembrulhar), então precisamos fazer
-                // isso na mão aqui - senão os campos do evento chegam todos nulos/vazios.
                 var json = UnwrapMassTransitEnvelope(rawBody);
 
                 switch (queueName)
